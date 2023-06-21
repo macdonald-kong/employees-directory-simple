@@ -1,7 +1,7 @@
 _id: req_8b48e74b2f8f4778bd6a931f0709ede0
 type: Request
 parentId: fld_b9e9b7404a5e4416a3d5badf0be3af7f
-modified: 1687378884493
+modified: 1687380110085
 created: 1687378884493
 url: "{{ _.base_url }}/api/employees"
 name: Create a new employee
@@ -18,13 +18,7 @@ body:
     }
 parameters: []
 headers: []
-authentication:
-  clientId: "{{ _.oauth2ClientId }}"
-  grantType: client_credentials
-  scope: read:employees
-  type: oauth2
-  clientSecret: "{{ _.oauth2ClientSecret }}"
-  accessTokenUrl: https://dev-78362292.okta.com/oauth2/default/v1/token
+authentication: {}
 metaSortKey: -1687378884493
 isPrivate: false
 settingStoreCookies: true

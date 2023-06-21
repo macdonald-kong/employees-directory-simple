@@ -1,22 +1,16 @@
 _id: req_f05f71b17973496d8f39089ad8be10b1
 type: Request
 parentId: fld_b9e9b7404a5e4416a3d5badf0be3af7f
-modified: 1687379036627
+modified: 1687380143809
 created: 1687379033011
-url: "{{ _.base_url }}/api/employees/{{ _.employeeId }}"
+url: "{{ _.base_url }}/api/employees/{{ _.newEmployeeId }}"
 name: Find employee by ID (1234)
 description: ""
 method: GET
 body: {}
 parameters: []
 headers: []
-authentication:
-  clientId: "{{ _.oauth2ClientId }}"
-  grantType: client_credentials
-  scope: read:employees
-  type: oauth2
-  clientSecret: "{{ _.oauth2ClientSecret }}"
-  accessTokenUrl: https://dev-78362292.okta.com/oauth2/default/v1/token
+authentication: {}
 metaSortKey: -1687378884492
 isPrivate: false
 settingStoreCookies: true
