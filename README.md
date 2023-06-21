@@ -1,10 +1,7 @@
-# employees-directory
+# employees-directory-simple
 
 This demonstration repository will execute the following steps to deploy an API to Kong Konnect
   
-- Builds our Microservice Container Image and publishes to DockerHub
-- Updates the repository containing the Kubernetes configuration with the new docker tag
-- Tells ArgoCD to sync and deploy the new microservice containers
 - Installs Inso CLI (https://insomnia.rest/products/inso)
 - Installs decK (https://docs.konghq.com/deck/latest/)
 - Lints the OpenAPI Spec (OAS) using Inso CLI
