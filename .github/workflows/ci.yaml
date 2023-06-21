@@ -39,10 +39,7 @@ jobs:
       run: inso lint spec ./api/oas.yaml
       
     - name: Generate Kong declarative configuration from Spec
-      run: inso generate config ./api/oas.yaml --type declarative --tags _KonnectService:${{ vars.KONG_SERVICE_NAME }} -o kong_raw.yaml
-      
-    - name: Upgrade Version of Kong declarative configuration
-      run: deck convert --input-file kong_raw.yaml --from kong-gateway-2.x --to kong-gateway-3.x --output-file kong.yaml
+      run: inso generate config ./api/oas.yaml --type declarative --tags _KonnectService:${{ vars.KONG_SERVICE_NAME }} -o kong_raw.yaml -k 3
       
     - name: 'Upload Kong Config Artifact'
       uses: actions/upload-artifact@v3
