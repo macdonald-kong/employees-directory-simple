@@ -1,7 +1,7 @@
 _id: spc_f44fdab376b14d59b4542e664ffdd9dc
 type: ApiSpec
 parentId: wrk_226543b369544fb784989a2c9febfb33
-modified: 1687380606728
+modified: 1687382859854
 created: 1687378772133
 fileName: employees-directory-simple.git
 contents: >+
@@ -13,7 +13,7 @@ contents: >+
     description: "This is a sample Employee Directory Server based on the OpenAPI 3.0 specification."
     termsOfService: https://konghq.com/terms
     contact:
-      email: david.macdonald@konhhq.com
+      email: david.macdonald@konghq.com
     license:
       name: Apache 2.0
       url: http://www.apache.org/licenses/LICENSE-2.0.html
