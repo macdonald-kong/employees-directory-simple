@@ -1,6 +1,6 @@
 # employees-directory-simple
 
-This demonstration repository will execute the following steps to deploy an API to Kong Konnect
+This demonstration repository will execute the following steps to deploy the Employees Directory API to Kong Konnect:
   
 - Installs Inso CLI (https://insomnia.rest/products/inso)
 - Installs decK (https://docs.konghq.com/deck/latest/)
@@ -12,12 +12,12 @@ This demonstration repository will execute the following steps to deploy an API 
 - Diffs declarative config using decK
 - Backup existing Kong configuration using decK
 - Uploads Kong config backup to Artifact Repository
-- Creates Service Hub Service Product
+- Creates API Product
 - Prepares Static Documentation
 - Uploads Static Documentation using Konnect Admin API
 - Deploys declarative config to development environment using decK
 - Prepares OAS 
-- Uploads OAS to Service Version using Konnect Admin API
+- Uploads OAS to Product Version using Konnect Admin API
 - Runs Unit Tests using Inso CLI
-- Publishes to Developer Portal using Konnect Admin API
+- Publishes Product Version to Developer Portal using Konnect Admin API
 - Turn on App Registration using Konnect Admin API
