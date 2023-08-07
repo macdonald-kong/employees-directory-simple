@@ -140,9 +140,9 @@ jobs:
     - name: Create API Product
       id: create-api-product
       run: |
-        echo "SERVICE_ID=$(curl ${{ secrets.KONNECT_ADDR }}/konnect-api/api/service_packages 
-          -H 'Authorization:Bearer ${{ secrets.KONNECT_TOKEN }}' 
-          -H 'Content-Type:application/json' 
+        echo "SERVICE_ID=$(curl ${{ secrets.KONNECT_ADDR }}/konnect-api/api/service_packages  \
+          --header 'Authorization:Bearer ${{ secrets.KONNECT_TOKEN }}' \
+          --header 'Content-Type:application/json' \
           -d "{\"name\":\"${{ vars.KONG_SERVICE_NAME }}\",\"display_name\":\"${{ vars.KONG_SERVICE_DISPLAY_NAME }}\",\"description\":\"${{ vars.KONG_SERVICE_DESCRIPTION }}\"}" | jq -r .id )" >> "$GITHUB_OUTPUT"
 
     - name: Prepare Static Documentation
@@ -160,8 +160,8 @@ jobs:
         for entry in "./docs"/*
         do
         curl -X POST ${{ secrets.KONNECT_ADDR }}/v0/services/${{ steps.create-service-hub-product.outputs.SERVICE_ID }}/documents \
-          -H "Authorization: ${{ secrets.KONNECT_TOKEN }}" \
-          -H 'Content-Type: application/json' \
+          --header "Authorization: ${{ secrets.KONNECT_TOKEN }}" \
+          --header 'Content-Type: application/json' \
           -d @$entry
         done
 
