@@ -1,3 +1,12 @@
+# Basic GitHub Actions Pipeline for Kong Konnect
+#
+# Author: David MacDonald
+# Contact: david.macdonald@konghq.com
+# Website: https://konghq.com/
+#
+# DISCLAIMER: DO NOT USE THIS IN PRODUCTION - FOR DEMONSTRATION PURPOSES ONLY
+#
+
 name: CI
 
 on:
@@ -19,53 +28,98 @@ jobs:
     
     - name: Checkout
       uses: actions/checkout@v3
-      
+
+    # Install Kongs decK tool: https://docs.konghq.com/deck/latest/
+
     - name: Install decK tool
       run: |
-        curl -sL https://github.com/kong/deck/releases/download/v1.19.1/deck_1.19.1_linux_amd64.tar.gz -o deck.tar.gz
+        curl -sL https://github.com/kong/deck/releases/download/v1.25.0/deck_1.25.0_linux_amd64.tar.gz -o deck.tar.gz
         tar -xf deck.tar.gz -C /tmp
         sudo cp /tmp/deck /usr/local/bin/
-      
+
+    # Install Inso CLI which we will use for Linting and Testing: https://docs.insomnia.rest/inso-cli/introduction
+
     - name: Install Inso CLI tool
       run: |
-        curl -sL https://github.com/Kong/insomnia/releases/download/lib%403.16.0/inso-linux-3.16.0.tar.xz -o inso.tar.xz
+        curl -sL https://github.com/Kong/insomnia/releases/download/lib%403.18.0/inso-linux-3.18.0.tar.xz -o inso.tar.xz
         tar -xf inso.tar.xz -C /tmp
-        sudo cp /tmp/inso /usr/local/bin/   
+        sudo cp /tmp/inso /usr/local/bin/
+
+    # Use Insos Export Spec command to pull our OpenAPI Spec out of the .insomnia folder and store it as a normal OAS file
 
     - name: Export OpenAPI Spec
       run: inso export spec $(yq '.name' $(echo -n ./.insomnia/Workspace/*)) > ./api/oas.yaml
 
+    # Check that the OpenAPI Specification file that we exported from the Insomnia Workspace is valid and well formed
+
     - name: Lint OpenAPI Spec
       run: inso lint spec ./api/oas.yaml
-      
+
+    # Use decKs openapi2kong command to generate Kong Declarative Configuration from the OpenAPI Specification exported from the Insomnia Workspace.
+
     - name: Generate Kong declarative configuration from Spec
-      run: inso generate config ./api/oas.yaml --type declarative --tags _KonnectService:${{ vars.KONG_SERVICE_NAME }} -o kong.yaml -k 3
-      
+      run: |
+        deck file openapi2kong \
+          --spec ./api/oas.yaml \
+          --format yaml \
+          --select-tag ${{ vars.KONG_SERVICE_NAME }} \
+          --output-file ./kong-generated.yaml
+
+    # Use decK Merge to merge together our generated Kong Declarative Configuration File with the contents of the Plugin folder in our repository
+
+    - name: Merge Kong Configuration with Plugins
+      run: |
+        deck file merge ./kong-generated.yaml ./api/plugins/* -o kong.yaml
+
+    # Use decK Validate to check that the new generated Kong Declarative Configuration is valid
+
+    - name: Validate Kong declarative configuration
+      run: |
+        deck validate \
+          --state kong.yaml
+
     - name: 'Upload Kong Config Artifact'
       uses: actions/upload-artifact@v3
       with:
         name: ${{ vars.KONG_SERVICE_NAME }}-api-kong-config
         path: kong.yaml
         
-    - name: Validate Kong declarative configuration
-      run: deck validate --state kong.yaml,./api/plugins
-      
+    # Compare the new desired state represented in the generated Kong Declarative Configuration with the current state of the platform
+
     - name: Diff declarative config
-      run: deck diff --state kong.yaml,./api/plugins --konnect-addr ${{ secrets.KONNECT_ADDR }} --konnect-token ${{ secrets.KONNECT_TOKEN }} --konnect-runtime-group-name ${{ secrets.KONNECT_RUNTIME_GROUP_NAME }} --select-tag _KonnectService:${{ vars.KONG_SERVICE_NAME }}
+      run: |
+        deck diff \
+          --state kong.yaml \
+          --konnect-addr ${{ secrets.KONNECT_ADDR }} \
+          --konnect-token ${{ secrets.KONNECT_TOKEN }} \
+          --konnect-runtime-group-name ${{ secrets.KONNECT_RUNTIME_GROUP_NAME }} \
+          --select-tag ${{ vars.KONG_SERVICE_NAME }}
+
+    # Use decK dump to take a backup of the entire Runtime Group Configuration
       
     - name: Backup Existing Kong Configuration
-      run: deck dump --konnect-addr ${{ secrets.KONNECT_ADDR }} --konnect-token ${{ secrets.KONNECT_TOKEN }} --konnect-runtime-group-name ${{ secrets.KONNECT_RUNTIME_GROUP_NAME }} -o kong-backup.yaml
-      
+      run: |
+        deck dump \
+          --konnect-addr ${{ secrets.KONNECT_ADDR }} \
+          --konnect-token ${{ secrets.KONNECT_TOKEN }} \
+          --konnect-runtime-group-name ${{ secrets.KONNECT_RUNTIME_GROUP_NAME }} \
+          --output-file kong-backup.yaml
+
+    # Publishes the Backup Kong Declarative Configuration as an artifact
+
     - name: 'Upload Kong Config Backup Artifact'
       uses: actions/upload-artifact@v3
       with:
         name: kong-backup
         path: kong-backup.yaml
 
-    - name: Create Service Hub Service Product
-      id: create-service-hub-product
+    - name: Create API Product
+      id: create-api-product
       run: |
-        echo "SERVICE_ID=$(curl ${{ secrets.KONNECT_ADDR }}/konnect-api/api/service_packages -H 'Authorization:Bearer ${{ secrets.KONNECT_TOKEN }}' -H 'Content-Type:application/json' -d "{\"name\":\"${{ vars.KONG_SERVICE_NAME }}\",\"display_name\":\"${{ vars.KONG_SERVICE_DISPLAY_NAME }}\",\"description\":\"${{ vars.KONG_SERVICE_DESCRIPTION }}\"}" | jq -r .id )" >> "$GITHUB_OUTPUT"
+        echo "SERVICE_ID=$(curl ${{ secrets.KONNECT_ADDR }}/konnect-api/api/service_packages 
+          -H 'Authorization:Bearer ${{ secrets.KONNECT_TOKEN }}' 
+          -H 'Content-Type:application/json' 
+          -d "{\"name\":\"${{ vars.KONG_SERVICE_NAME }}\",\"display_name\":\"${{ vars.KONG_SERVICE_DISPLAY_NAME }}\",\"description\":\"${{ vars.KONG_SERVICE_DESCRIPTION }}\"}" | jq -r .id )" >> "$GITHUB_OUTPUT"
 
     - name: Prepare Static Documentation
       id: prepare-static-docs
@@ -81,28 +135,72 @@ jobs:
       run: |
         for entry in "./docs"/*
         do
-        curl -X POST ${{ secrets.KONNECT_ADDR }}/v0/services/${{ steps.create-service-hub-product.outputs.SERVICE_ID }}/documents -H "Authorization: ${{ secrets.KONNECT_TOKEN }}" -H 'Content-Type: application/json' -d @$entry
+        curl -X POST ${{ secrets.KONNECT_ADDR }}/v0/services/${{ steps.create-service-hub-product.outputs.SERVICE_ID }}/documents \
+          -H "Authorization: ${{ secrets.KONNECT_TOKEN }}" \
+          -H 'Content-Type: application/json' \
+          -d @$entry
         done
         
     - name: Deploy declarative config to development environment
       id: deploy-declarative-config
       run: |
-        deck sync --state kong.yaml,./api/plugins --konnect-addr ${{ secrets.KONNECT_ADDR }} --konnect-token ${{ secrets.KONNECT_TOKEN }} --konnect-runtime-group-name ${{ secrets.KONNECT_RUNTIME_GROUP_NAME }} --select-tag _KonnectService:${{ vars.KONG_SERVICE_NAME }}
+        deck sync \
+          --state kong.yaml,./api/plugins \
+          --konnect-addr ${{ secrets.KONNECT_ADDR }} \
+          --konnect-token ${{ secrets.KONNECT_TOKEN }} \
+          --konnect-runtime-group-name ${{ secrets.KONNECT_RUNTIME_GROUP_NAME }} \
+          --select-tag _KonnectService:${{ vars.KONG_SERVICE_NAME }}
         sleep 10
         echo "SERVICE_VERSION_ID=$(curl ${{ secrets.KONNECT_ADDR }}/konnect-api/api/service_packages/${{ steps.create-service-hub-product.outputs.SERVICE_ID }} -H "Authorization:Bearer ${{ secrets.KONNECT_TOKEN }}" | jq -r '.versions | .[] | .id')" >> "$GITHUB_OUTPUT"
+
+    # Set a Variable containing the Service ID of the Service that we deployed - we need this to link the API Product to a Kong Service
+
+    - name: Get Service ID
+      id: get-service-id
+      run: |
+        echo "SERVICE_ID;]$(curl \
+          --url "https://$(KONNECT_REGION).api.konghq.com/v2/runtime-groups/$(KONNECT_RUNTIME_GROUP_ID)/core-entities/services?tags=$(SERVICE_TAGS)" \
+          --header 'accept: application/json' \
+          --header "Authorization: Bearer ${{ secrets.KONNECT_TOKEN }}" | jq -r '.data[0].id')" >> "$GITHUB_OUTPUT"
 
     - name: Prepare OpenAPI Specification 
       id: prepare-oas
       run: |
         yq -i '.servers[0].url = "${{ vars.KONG_GATEWAY }}"' ./api/oas.yaml
-        cat ./api/oas.yaml | jq -sR . >> service_data.json
-        echo -n '{"published":"true","path":"./api/oas.yaml","content":' | cat - service_data.json > temp && mv temp service_data.json
-        echo -n '}' >> service_data.json
+        base64 -w 0 ./api/oas.yaml > oas-encoded.yaml
+        jq --null-input --arg content "$(<oas-encoded.yaml)" '{"name": "oas.yaml", "content": $content}' >> product_version_spec.json
+
+    - name: Create API Product Version 
+      id: create-api-product-version
+      run: |      
+        echo "API_PRODUCT_VERSION_ID=$(curl -X POST \
+          --url "https://$(KONNECT_REGION).api.konghq.com/v2/api-products/${{ steps.create-service-hub-product.outputs.SERVICE_ID }}/product-versions" \
+          --header "Authorization: Bearer ${{ secrets.KONNECT_TOKEN }}" \
+          --header "Content-Type: application/json" \
+          --header "Accept: application/json" \
+          --data '{
+            "name":"v1",
+            "publish_status":"published",
+            "deprecated":false,
+            "gateway_service": {
+                "runtime_group_id":"1e66084e-0b3c-42e8-9dc8-75e49fe8d4fa",
+                "id":"${{ steps.get-service-id.outputs.SERVICE_ID }}"
+              }
+          }' | jq -r '.id')" >> "$GITHUB_OUTPUT"
+
+    # Upload the prepared OAS JSON Payload to the API Product Version
 
     - name: Upload OpenAPI Specification to Service Version
       id: upload-oas
       run: |
-        curl -X POST ${{ secrets.KONNECT_ADDR }}/konnect-api/api/service_versions/${{ steps.deploy-declarative-config.outputs.SERVICE_VERSION_ID }}/documents -H "Authorization:Bearer ${{ secrets.KONNECT_TOKEN }}" -H 'Content-Type:application/json' -d @service_data.json
+        curl -v \
+          --url "${{ secrets.KONNECT_ADDR }}/v2/api-products/${{ steps.create-service-hub-product.outputs.SERVICE_ID }}/product-versions/${{ steps.create-api-product-version.outputs.API_PRODUCT_VERSION_ID }}/specifications" \
+          --header "Authorization: Bearer ${{ secrets.KONNECT_TOKEN }}" \
+          --header "Content-Type: application/json" \
+          --header "Accept: application/json" \
+          --data @product_version_spec.json
+
+    # Run the tests defined in our Insomnia Test Suite
 
     - name: Run Tests
       id: run-tests
@@ -112,8 +210,5 @@ jobs:
     - name: Publish to Developer Portal
       run: |
         echo "Publish service id ${{ steps.create-service-hub-product.outputs.SERVICE_ID }} to portal"
-        curl -X PUT ${{ secrets.KONNECT_ADDR }}/konnect-api/api/service_packages/${{ steps.create-service-hub-product.outputs.SERVICE_ID }}/portals/${{ secrets.PORTAL_ID }} -H "Authorization:Bearer ${{ secrets.KONNECT_TOKEN }}"
-
-    - name: Turn on App Registration
-      run: |
-        curl -X PUT ${{ secrets.KONNECT_ADDR }}/konnect-api/api/application_registrations/service_versions/${{ steps.deploy-declarative-config.outputs.SERVICE_VERSION_ID }} -H "Authorization:Bearer ${{ secrets.KONNECT_TOKEN }}"
+        curl -X PUT ${{ secrets.KONNECT_ADDR }}/konnect-api/api/service_packages/${{ steps.create-service-hub-product.outputs.SERVICE_ID }}/portals/${{ secrets.PORTAL_ID }} 
+          -H "Authorization:Bearer ${{ secrets.KONNECT_TOKEN }}"
