@@ -123,7 +123,7 @@ jobs:
           --konnect-addr ${{ secrets.KONNECT_ADDR }} \
           --konnect-token ${{ secrets.KONNECT_TOKEN }} \
           --konnect-runtime-group-name ${{ secrets.KONNECT_RUNTIME_GROUP_NAME }} \
-          --select-tag _KonnectService:${{ vars.KONG_SERVICE_NAME }}
+          --select-tag ${{ vars.KONG_SERVICE_NAME }}
         sleep 10
         echo "SERVICE_VERSION_ID=$(curl ${{ secrets.KONNECT_ADDR }}/konnect-api/api/service_packages/${{ steps.create-service-hub-product.outputs.SERVICE_ID }} -H "Authorization:Bearer ${{ secrets.KONNECT_TOKEN }}" | jq -r '.versions | .[] | .id')" >> "$GITHUB_OUTPUT"
 
@@ -132,8 +132,8 @@ jobs:
     - name: Get Service ID
       id: get-service-id
       run: |
-        echo "SERVICE_ID;]$(curl \
-          --url "https://$(KONNECT_REGION).api.konghq.com/v2/runtime-groups/$(KONNECT_RUNTIME_GROUP_ID)/core-entities/services?tags=$(SERVICE_TAGS)" \
+        echo "SERVICE_ID"=$(curl \
+          --url "${{ secrets.KONNECT_ADDR }}.api.konghq.com/v2/runtime-groups/$(KONNECT_RUNTIME_GROUP_ID)/core-entities/services?tags=${{ vars.KONG_SERVICE_NAME }}" \
           --header 'accept: application/json' \
           --header "Authorization: Bearer ${{ secrets.KONNECT_TOKEN }}" | jq -r '.data[0].id')" >> "$GITHUB_OUTPUT"
 
