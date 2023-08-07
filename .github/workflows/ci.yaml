@@ -137,6 +137,12 @@ jobs:
           --header 'accept: application/json' \
           --header "Authorization: Bearer ${{ secrets.KONNECT_TOKEN }}" | jq -r '.data[0].id')" >> "$GITHUB_OUTPUT"
 
+    # Checks if an API Product Version already exists so that we don't create a duplicate each time this is run
+
+    # TODO
+
+    # Create a new API Product Version if the API Product Version ID from the previous script is null
+
     - name: Create API Product
       id: create-api-product
       run: |
@@ -144,6 +150,8 @@ jobs:
           --header 'Authorization:Bearer ${{ secrets.KONNECT_TOKEN }}' \
           --header 'Content-Type:application/json' \
           --data "{\"name\":\"${{ vars.KONG_SERVICE_NAME }}\",\"display_name\":\"${{ vars.KONG_SERVICE_DISPLAY_NAME }}\",\"description\":\"${{ vars.KONG_SERVICE_DESCRIPTION }}\"}" | jq -r .id )" >> "$GITHUB_OUTPUT"
+
+    # Add the OAS to the JSON Payload required by the Konnect Product API Version API and output as a file
 
     - name: Prepare Static Documentation
       id: prepare-static-docs
@@ -153,6 +161,8 @@ jobs:
         do
         echo "{\"slug\":\"$(echo "$entry" | sed 's#.*/\([^/]*\)\.md#\1#')\",\"status\":\"published\",\"title\":\"$(echo "$entry" | sed 's#.*/\([^/]*\)\.md#\1#')\",\"raw_content\":\"$(base64 -i ./api/portal_assets/${entry##*/})\",\"filename\":\"$(echo "$entry" | sed 's#.*/\([^/]*\)\.md#\1#')\"}" >> ./docs/$(echo "$entry" | sed 's#.*/\([^/]*\)\.md#\1#').json
         done
+
+    # Upload the prepared OAS JSON Payload to the API Product Version
 
     - name: Upload Static Documentation
       id: upload-static-docs
@@ -164,6 +174,8 @@ jobs:
           --header 'Content-Type: application/json' \
           --data @$entry
         done
+
+    # Add the OAS to the JSON Payload required by the Konnect Product API Version API and output as a file
 
     - name: Prepare OpenAPI Specification 
       id: prepare-oas
