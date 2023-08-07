@@ -143,7 +143,7 @@ jobs:
         echo "SERVICE_ID=$(curl ${{ secrets.KONNECT_ADDR }}/konnect-api/api/service_packages  \
           --header 'Authorization:Bearer ${{ secrets.KONNECT_TOKEN }}' \
           --header 'Content-Type:application/json' \
-          -d "{\"name\":\"${{ vars.KONG_SERVICE_NAME }}\",\"display_name\":\"${{ vars.KONG_SERVICE_DISPLAY_NAME }}\",\"description\":\"${{ vars.KONG_SERVICE_DESCRIPTION }}\"}" | jq -r .id )" >> "$GITHUB_OUTPUT"
+          --data "{\"name\":\"${{ vars.KONG_SERVICE_NAME }}\",\"display_name\":\"${{ vars.KONG_SERVICE_DISPLAY_NAME }}\",\"description\":\"${{ vars.KONG_SERVICE_DESCRIPTION }}\"}" | jq -r .id )" >> "$GITHUB_OUTPUT"
 
     - name: Prepare Static Documentation
       id: prepare-static-docs
@@ -162,7 +162,7 @@ jobs:
         curl -X POST ${{ secrets.KONNECT_ADDR }}/v0/services/${{ steps.create-service-hub-product.outputs.SERVICE_ID }}/documents \
           --header "Authorization: ${{ secrets.KONNECT_TOKEN }}" \
           --header 'Content-Type: application/json' \
-          -d @$entry
+          --data @$entry
         done
 
     - name: Prepare OpenAPI Specification 
@@ -178,7 +178,7 @@ jobs:
       id: create-api-product-version
       run: |      
         echo "API_PRODUCT_VERSION_ID=$(curl -X POST \
-          --url "${{ secrets.KONNECT_ADDR }}.api.konghq.com/v2/api-products/${{ steps.create-service-hub-product.outputs.SERVICE_ID }}/product-versions" \
+          --url "${{ secrets.KONNECT_ADDR }}/v2/api-products/${{ steps.create-service-hub-product.outputs.SERVICE_ID }}/product-versions" \
           --header "Authorization: Bearer ${{ secrets.KONNECT_TOKEN }}" \
           --header "Content-Type: application/json" \
           --header "Accept: application/json" \
