@@ -133,7 +133,7 @@ jobs:
       id: get-service-id
       run: |
         echo "SERVICE_ID=$(curl \
-          --url "${{ secrets.KONNECT_ADDR }}.api.konghq.com/v2/runtime-groups/$(KONNECT_RUNTIME_GROUP_ID)/core-entities/services?tags=${{ vars.KONG_SERVICE_NAME }}" \
+          --url "${{ secrets.KONNECT_ADDR }}/v2/runtime-groups/1e66084e-0b3c-42e8-9dc8-75e49fe8d4fa/core-entities/services?tags=${{ vars.KONG_SERVICE_NAME }}" \
           --header 'accept: application/json' \
           --header "Authorization: Bearer ${{ secrets.KONNECT_TOKEN }}" | jq -r '.data[0].id')" >> "$GITHUB_OUTPUT"
 
