@@ -113,6 +113,28 @@ jobs:
         name: kong-backup
         path: kong-backup.yaml
 
+    - name: Deploy declarative config to development environment
+      id: deploy-declarative-config
+      run: |
+        deck sync \
+          --state kong.yaml \
+          --konnect-addr ${{ secrets.KONNECT_ADDR }} \
+          --konnect-token ${{ secrets.KONNECT_TOKEN }} \
+          --konnect-runtime-group-name ${{ secrets.KONNECT_RUNTIME_GROUP_NAME }} \
+          --select-tag _KonnectService:${{ vars.KONG_SERVICE_NAME }}
+        sleep 10
+        echo "SERVICE_VERSION_ID=$(curl ${{ secrets.KONNECT_ADDR }}/konnect-api/api/service_packages/${{ steps.create-service-hub-product.outputs.SERVICE_ID }} -H "Authorization:Bearer ${{ secrets.KONNECT_TOKEN }}" | jq -r '.versions | .[] | .id')" >> "$GITHUB_OUTPUT"
+
+    # Set a Variable containing the Service ID of the Service that we deployed - we need this to link the API Product to a Kong Service
+
+    - name: Get Service ID
+      id: get-service-id
+      run: |
+        echo "SERVICE_ID;]$(curl \
+          --url "https://$(KONNECT_REGION).api.konghq.com/v2/runtime-groups/$(KONNECT_RUNTIME_GROUP_ID)/core-entities/services?tags=$(SERVICE_TAGS)" \
+          --header 'accept: application/json' \
+          --header "Authorization: Bearer ${{ secrets.KONNECT_TOKEN }}" | jq -r '.data[0].id')" >> "$GITHUB_OUTPUT"
+
     - name: Create API Product
       id: create-api-product
       run: |
@@ -140,28 +162,6 @@ jobs:
           -H 'Content-Type: application/json' \
           -d @$entry
         done
-        
-    - name: Deploy declarative config to development environment
-      id: deploy-declarative-config
-      run: |
-        deck sync \
-          --state kong.yaml,./api/plugins \
-          --konnect-addr ${{ secrets.KONNECT_ADDR }} \
-          --konnect-token ${{ secrets.KONNECT_TOKEN }} \
-          --konnect-runtime-group-name ${{ secrets.KONNECT_RUNTIME_GROUP_NAME }} \
-          --select-tag _KonnectService:${{ vars.KONG_SERVICE_NAME }}
-        sleep 10
-        echo "SERVICE_VERSION_ID=$(curl ${{ secrets.KONNECT_ADDR }}/konnect-api/api/service_packages/${{ steps.create-service-hub-product.outputs.SERVICE_ID }} -H "Authorization:Bearer ${{ secrets.KONNECT_TOKEN }}" | jq -r '.versions | .[] | .id')" >> "$GITHUB_OUTPUT"
-
-    # Set a Variable containing the Service ID of the Service that we deployed - we need this to link the API Product to a Kong Service
-
-    - name: Get Service ID
-      id: get-service-id
-      run: |
-        echo "SERVICE_ID;]$(curl \
-          --url "https://$(KONNECT_REGION).api.konghq.com/v2/runtime-groups/$(KONNECT_RUNTIME_GROUP_ID)/core-entities/services?tags=$(SERVICE_TAGS)" \
-          --header 'accept: application/json' \
-          --header "Authorization: Bearer ${{ secrets.KONNECT_TOKEN }}" | jq -r '.data[0].id')" >> "$GITHUB_OUTPUT"
 
     - name: Prepare OpenAPI Specification 
       id: prepare-oas
