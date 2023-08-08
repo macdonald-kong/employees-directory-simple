@@ -111,11 +111,11 @@ jobs:
           --konnect-token ${{ secrets.KONNECT_TOKEN }} \
           --konnect-runtime-group-name "${{ env.KONNECT_RUNTIME_GROUP_NAME }}"\
 
-#######################################
-#
-#   BUILD CONFIGURATION STAGE
-#
-#######################################
+    #######################################
+    #
+    #   BUILD CONFIGURATION STAGE
+    #
+    #######################################
 
     # Use decK Merge to merge together our generated Kong Declarative Configuration File with the contents of the Plugin folder in our repository
 
@@ -139,11 +139,11 @@ jobs:
         path: kong.yaml
 
 
-#######################################
-#
-#   DEPLOY CONFIGURATION STAGE
-#
-#######################################
+    #######################################
+    #
+    #   DEPLOY CONFIGURATION STAGE
+    #
+    #######################################
 
     # Compare the new desired state represented in the generated Kong Declarative Configuration with the current state of the platform
 
@@ -198,11 +198,11 @@ jobs:
           --header 'accept: application/json' \
           --header "Authorization: Bearer ${{ secrets.KONNECT_TOKEN }}" | jq -r '.data[0].id')" >> "$GITHUB_OUTPUT"
 
-#######################################
-#
-#   CREATE API PRODUCT STAGE
-#
-#######################################
+    #######################################
+    #
+    #   CREATE API PRODUCT STAGE
+    #
+    #######################################
 
     # Checks if an API Product Version already exists so that we don't create a duplicate each time this is run
 
@@ -298,7 +298,7 @@ jobs:
               "publish_status":"published",
               "deprecated":false,
               "gateway_service": {
-                  "runtime_group_id":"{{ $KONNECT_RUNTIME_GROUP_ID}}",
+                  "runtime_group_id":"${{ $KONNECT_RUNTIME_GROUP_ID}}",
                   "id":"${{ steps.get-service-id.outputs.SERVICE_ID }}"
                 }
             }' | jq -r '.id')" >> "$GITHUB_OUTPUT"
