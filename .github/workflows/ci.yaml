@@ -68,8 +68,8 @@ jobs:
 
     - name: URL Encode Variables
       run: |
-        echo "API_PRODUCT_NAME_ENCODED=$(echo ${{ env.API_PRODUCT_NAME }} | sed 's/ /%20/g')"  >> $GITHUB_ENV
-        echo "KONNECT_RUNTIME_GROUP_NAME_ENCODED=$(echo ${{ env.KONNECT_RUNTIME_GROUP_NAME }} | sed 's/ /%20/g')"  >> $GITHUB_ENV
+        echo "API_PRODUCT_NAME_ENCODED=$(echo $(API_PRODUCT_NAME) | sed 's/ /%20/g')"  >> $GITHUB_ENV
+        echo "KONNECT_RUNTIME_GROUP_NAME_ENCODED=$(echo $KONNECT_RUNTIME_GROUP_NAME) | sed 's/ /%20/g')"  >> $GITHUB_ENV
 
     # The API Product Version name will not be unique if just based on what we extract from the OAS - we need to add the Runtime Group Name to this
 
