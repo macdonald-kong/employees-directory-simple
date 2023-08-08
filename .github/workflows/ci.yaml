@@ -181,7 +181,7 @@ jobs:
       run: |
           echo "API_PRODUCT_ID=$(curl \
           --request GET \
-          --url "https://${{ secrets.KONNECT_ADDR }}/v2/api-products?filter%5Bname%5D=${{ API_PRODUCT_NAME_ENCODED }}" \
+          --url "https://${{ secrets.KONNECT_ADDR }}/v2/api-products?filter%5Bname%5D=${{ env.API_PRODUCT_NAME_ENCODED }}" \
           --header "Authorization: Bearer ${{ secrets.KONNECT_TOKEN }}" \
           --header "Accept: application/json" | jq -r '.data[0].id')" >> "$GITHUB_OUTPUT"
 
