@@ -124,6 +124,8 @@ jobs:
         deck validate \
           --state kong.yaml
 
+    # Publishes Kong Declarative Configuration as an artifact
+
     - name: 'Upload Kong Config Artifact'
       uses: actions/upload-artifact@v3
       with:
@@ -219,7 +221,7 @@ jobs:
         mkdir docs
         for entry in "./api/portal_assets"/*
         do
-          echo "{\"slug\":\"$(echo "$entry" | sed 's#.*/\([^/]*\)\.md#\1#')\",\"status\":\"published\",\"title\":\"$(echo "$entry" | sed 's#.*/\([^/]*\)\.md#\1#')\",\"content\":\"$(base64 -i ./api/portal-assets/${entry##*/})\"}" >> ./docs/$(echo "$entry" | sed 's#.*/\([^/]*\)\.md#\1#').json
+          echo "{\"slug\":\"$(echo "$entry" | sed 's#.*/\([^/]*\)\.md#\1#')\",\"status\":\"published\",\"title\":\"$(echo "$entry" | sed 's#.*/\([^/]*\)\.md#\1#')\",\"content\":\"$(base64 -i ./api/portal_assets/${entry##*/})\"}" >> ./docs/$(echo "$entry" | sed 's#.*/\([^/]*\)\.md#\1#').json
         done
 
     # For each of the Json payloads that we have generated in the previous step, send them to the API Products Documents API to upload
