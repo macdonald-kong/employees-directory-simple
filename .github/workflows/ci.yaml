@@ -75,7 +75,7 @@ jobs:
 
     - name: Concat API Product Version Variable
       run: |
-        echo "KONNECT_API_PRODUCT_VERSION=$(echo ${{ env.API_PRODUCT_VERSION }}-${{ env.KONNECT_RUNTIME_GROUP_NAME_ENCODED }})"  >> $GITHUB_ENV
+        echo "API_PRODUCT_VERSION=$(echo ${{ env.API_PRODUCT_VERSION }}-${{ env.KONNECT_RUNTIME_GROUP_NAME_ENCODED }})"  >> $GITHUB_ENV
 
     # Use the Konnect Runtime Group Name to search for the ID using the Konnect Runtime Group API
 
