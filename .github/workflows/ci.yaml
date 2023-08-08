@@ -245,7 +245,7 @@ jobs:
         jq --null-input --arg content "$(<oas-encoded.yaml)" '{"name": "oas.yaml", "content": $content}' >> product_version_spec.json
 
 
-# Checks if an API Product Version already exists so that we don't create a duplicate each time this is run
+    # Checks if an API Product Version already exists so that we don't create a duplicate each time this is run
 
     - name: Get API Product Version ID if it already exists 
       id: get-api-product-version-id
@@ -263,7 +263,7 @@ jobs:
       run: |      
         if [[ "${{ steps.create-api-product.outputs.KONNECT_API_PRODUCT_VERSION_ID}}" == "null" ]]; then
           echo "API_PRODUCT_VERSION_ID=$(curl -X POST \
-            --url "${{ secrets.KONNECT_ADDR }}/v2/api-products/${{ steps.create-service-hub-product.outputs.SERVICE_ID }}/product-versions" \
+            --url "https://${{ env.KONNECT_REGION }}.api.konghq.com/v2/api-products/${{ steps.create-api-product.outputs.API_PRODUCT_ID }}/product-versions" \
             --header "Authorization: Bearer ${{ secrets.KONNECT_TOKEN }}" \
             --header "Content-Type: application/json" \
             --header "Accept: application/json" \
