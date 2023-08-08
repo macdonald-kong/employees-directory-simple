@@ -179,7 +179,7 @@ jobs:
       id: get-service-id
       run: |
         echo "SERVICE_ID=$(curl \
-          --url "${{ secrets.KONNECT_ADDR }}/v2/runtime-groups/1e66084e-0b3c-42e8-9dc8-75e49fe8d4fa/core-entities/services?tags=${{ env.SERVICE_TAGS }}" \
+          --url "https://${{ env.KONNECT_REGION }}.api.konghq.com/v2/runtime-groups/1e66084e-0b3c-42e8-9dc8-75e49fe8d4fa/core-entities/services?tags=${{ env.SERVICE_TAGS }}" \
           --header 'accept: application/json' \
           --header "Authorization: Bearer ${{ secrets.KONNECT_TOKEN }}" | jq -r '.data[0].id')" >> "$GITHUB_OUTPUT"
 
@@ -190,7 +190,7 @@ jobs:
       run: |
           echo "API_PRODUCT_ID=$(curl \
           --request GET \
-          --url "https://${{ secrets.KONNECT_ADDR }}/v2/api-products?filter%5Bname%5D=${{ env.API_PRODUCT_NAME_ENCODED }}" \
+          --url "https://${{ env.KONNECT_REGION }}.api.konghq.com/v2/api-products?filter%5Bname%5D=${{ env.API_PRODUCT_NAME_ENCODED }}" \
           --header "Authorization: Bearer ${{ secrets.KONNECT_TOKEN }}" \
           --header "Accept: application/json" | jq -r '.data[0].id')" >> "$GITHUB_OUTPUT"
 
