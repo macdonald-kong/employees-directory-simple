@@ -299,7 +299,7 @@ jobs:
                   "runtime_group_id":"${{ env.KONNECT_RUNTIME_GROUP_ID}}",
                   "id":"${{ env.SERVICE_ID }}"
                 }
-            }' | jq -r '.id')" >> "$GITHUB_OUTPUT"
+            }' | jq -r '.id')" >> "$GITHUB_ENV"
         fi
 
     # Upload the prepared OAS JSON Payload to the API Product Version

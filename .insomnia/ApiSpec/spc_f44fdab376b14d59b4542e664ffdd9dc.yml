@@ -9,7 +9,7 @@ contents: >+
 
 
   info:
-    title: employees-directory-v1-dev
+    title: Employees-Directory
     description: "This is a sample Employee Directory Server based on the OpenAPI 3.0 specification."
     termsOfService: https://konghq.com/terms
     contact:
