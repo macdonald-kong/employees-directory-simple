@@ -298,7 +298,7 @@ jobs:
               "publish_status":"published",
               "deprecated":false,
               "gateway_service": {
-                  "runtime_group_id":"${{ $KONNECT_RUNTIME_GROUP_ID}}",
+                  "runtime_group_id":"${{ env.KONNECT_RUNTIME_GROUP_ID}}",
                   "id":"${{ steps.get-service-id.outputs.SERVICE_ID }}"
                 }
             }' | jq -r '.id')" >> "$GITHUB_OUTPUT"
