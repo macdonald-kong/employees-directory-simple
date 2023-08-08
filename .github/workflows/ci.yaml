@@ -260,15 +260,6 @@ jobs:
     #
     #######################################
 
-    # Add the OAS to the JSON Payload required by the Konnect Product API Version API and output as a file
-
-    - name: Prepare OpenAPI Specification 
-      id: prepare-oas
-      run: |
-        yq -i '.servers[0].url = "${{ vars.KONG_GATEWAY }}"' ./api/oas.yaml
-        base64 -w 0 ./api/oas.yaml > oas-encoded.yaml
-        jq --null-input --arg content "$(<oas-encoded.yaml)" '{"name": "oas.yaml", "content": $content}' >> product_version_spec.json
-
     # Checks if an API Product Version already exists so that we don't create a duplicate each time this is run
 
     - name: Get API Product Version ID if it already exists 
@@ -302,13 +293,22 @@ jobs:
             }' | jq -r '.id')" >> "$GITHUB_ENV"
         fi
 
+    # Add the OAS to the JSON Payload required by the Konnect Product API Version API and output as a file
+
+    - name: Prepare OpenAPI Specification 
+      id: prepare-oas
+      run: |
+        yq -i '.servers[0].url = "${{ vars.KONG_GATEWAY }}"' ./api/oas.yaml
+        base64 -w 0 ./api/oas.yaml > oas-encoded.yaml
+        jq --null-input --arg content "$(<oas-encoded.yaml)" '{"name": "oas.yaml", "content": $content}' >> product_version_spec.json
+
     # Upload the prepared OAS JSON Payload to the API Product Version
 
-    - name: Upload OpenAPI Specification to Service Version
+    - name: Upload OpenAPI Specification to API Product Version
       id: upload-oas
       run: |
         curl -v \
-          --url "https://${{ env.KONNECT_REGION }}.api.konghq.com/v2/api-products/${{ env.SERVICE_ID }}/product-versions/${{ env.KONNECT_API_PRODUCT_VERSION_ID }}/specifications" \
+          --url "https://${{ env.KONNECT_REGION }}.api.konghq.com/v2/api-products/${{ env.API_PRODUCT_ID }}/product-versions/${{ env.KONNECT_API_PRODUCT_VERSION_ID }}/specifications" \
           --header "Authorization: Bearer ${{ secrets.KONNECT_TOKEN }}" \
           --header "Content-Type: application/json" \
           --header "Accept: application/json" \
