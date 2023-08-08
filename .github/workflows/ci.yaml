@@ -68,8 +68,8 @@ jobs:
 
     - name: URL Encode Variables
       run: |
-        echo "API_PRODUCT_NAME_ENCODED=$(echo $(API_PRODUCT_NAME) | sed 's/ /%20/g')"  >> $GITHUB_ENV
-        echo "KONNECT_RUNTIME_GROUP_NAME_ENCODED=$(echo $KONNECT_RUNTIME_GROUP_NAME) | sed 's/ /%20/g')"  >> $GITHUB_ENV
+        echo "API_PRODUCT_NAME_ENCODED=$(echo ${{ env.API_PRODUCT_NAME }} | sed 's/ /%20/g')"  >> $GITHUB_ENV
+        echo "KONNECT_RUNTIME_GROUP_NAME_ENCODED=$(echo ${{ env.KONNECT_RUNTIME_GROUP_NAME }} | sed 's/ /%20/g')"  >> $GITHUB_ENV
 
     # The API Product Version name will not be unique if just based on what we extract from the OAS - we need to add the Runtime Group Name to this
 
@@ -185,8 +185,6 @@ jobs:
           --konnect-token ${{ secrets.KONNECT_TOKEN }} \
           --konnect-runtime-group-name ${{ env.KONNECT_RUNTIME_GROUP_NAME }} \
           --select-tag ${{ env.SERVICE_TAGS }}
-        sleep 10
-        echo "SERVICE_VERSION_ID=$(curl ${{ secrets.KONNECT_ADDR }}/konnect-api/api/service_packages/${{ steps.create-service-hub-product.outputs.SERVICE_ID }} -H "Authorization:Bearer ${{ secrets.KONNECT_TOKEN }}" | jq -r '.versions | .[] | .id')" >> "$GITHUB_OUTPUT"
 
     # Set a Variable containing the Service ID of the Service that we deployed - we need this to link the API Product to a Kong Service
 
@@ -194,9 +192,9 @@ jobs:
       id: get-service-id
       run: |
         echo "SERVICE_ID=$(curl \
-          --url "https://${{ env.KONNECT_REGION }}.api.konghq.com/v2/runtime-groups/1e66084e-0b3c-42e8-9dc8-75e49fe8d4fa/core-entities/services?tags=${{ env.SERVICE_TAGS }}" \
+          --url "https://${{ env.KONNECT_REGION }}.api.konghq.com/v2/runtime-groups/${{ env.KONNECT_RUNTIME_GROUP_ID}}/core-entities/services?tags=${{ env.SERVICE_TAGS }}" \
           --header 'accept: application/json' \
-          --header "Authorization: Bearer ${{ secrets.KONNECT_TOKEN }}" | jq -r '.data[0].id')" >> "$GITHUB_OUTPUT"
+          --header "Authorization: Bearer ${{ secrets.KONNECT_TOKEN }}" | jq -r '.data[0].id')" >> "$GITHUB_ENV"
 
     #######################################
     #
@@ -213,15 +211,15 @@ jobs:
           --request GET \
           --url "https://${{ env.KONNECT_REGION }}.api.konghq.com/v2/api-products?filter%5Bname%5D=${{ env.API_PRODUCT_NAME_ENCODED }}" \
           --header "Authorization: Bearer ${{ secrets.KONNECT_TOKEN }}" \
-          --header "Accept: application/json" | jq -r '.data[0].id')" >> "$GITHUB_OUTPUT"
+          --header "Accept: application/json" | jq -r '.data[0].id')" >> "$GITHUB_ENV"
 
     # Create a new API Product if the API Product ID from the previous script is null
 
     - name: Create API Product
       id: create-api-product
       run: |
-        echo API_PRODUCT_ID: ${{ steps.get-api-product-id.outputs.API_PRODUCT_ID }}
-        if [[ "${{ steps.get-api-product-id.outputs.API_PRODUCT_ID }}" == "null" ]]; then
+        echo API_PRODUCT_ID: ${{ env.API_PRODUCT_ID }}
+        if [[ "${{ env.API_PRODUCT_ID }}" == "null" ]]; then
           echo "API_PRODUCT_ID=$(curl \
             --url https://${{ env.KONNECT_REGION }}.api.konghq.com/v2/api-products \
             --header "Authorization: Bearer ${{ secrets.KONNECT_TOKEN }}" \
@@ -250,7 +248,7 @@ jobs:
       run: |
         for entry in "./docs"/*
         do
-          curl -X POST https://${{ env.KONNECT_REGION }}.api.konghq.com/v2/api-products/${{ steps.create-api-product.outputs.API_PRODUCT_ID }}/documents \
+          curl -X POST https://${{ env.KONNECT_REGION }}.api.konghq.com/v2/api-products/${{ env.API_PRODUCT_ID }}/documents \
           --header "Authorization: Bearer ${{ secrets.KONNECT_TOKEN }}" \
           --header "Content-Type: application/json" \
           -d @$entry
@@ -278,7 +276,7 @@ jobs:
       run: |
         echo "KONNECT_API_PRODUCT_VERSION_ID=$(curl \
           --request GET \
-          --url "https://${{ env.KONNECT_REGION }}.api.konghq.com/v2/api-products/${{ steps.create-api-product.outputs.API_PRODUCT_ID }}/product-versions?filter%5Bname%5D=${{ env.KONNECT_API_PRODUCT_VERSION }}" \
+          --url "https://${{ env.KONNECT_REGION }}.api.konghq.com/v2/api-products/${{ env.API_PRODUCT_ID }}/product-versions?filter%5Bname%5D=${{ env.KONNECT_API_PRODUCT_VERSION }}" \
           --header "Authorization: Bearer ${{ secrets.KONNECT_TOKEN }}" \
           --header "Accept: application/json" | jq -r '.data[0].id')" >> "$GITHUB_OUTPUT"
 
@@ -289,7 +287,7 @@ jobs:
       run: |      
         if [[ "${{ steps.get-api-product-version-id.outputs.KONNECT_API_PRODUCT_VERSION_ID}}" == "null" ]]; then
           echo "API_PRODUCT_VERSION_ID=$(curl -X POST \
-            --url "https://${{ env.KONNECT_REGION }}.api.konghq.com/v2/api-products/${{ steps.create-api-product.outputs.API_PRODUCT_ID }}/product-versions" \
+            --url "https://${{ env.KONNECT_REGION }}.api.konghq.com/v2/api-products/${{ env.API_PRODUCT_ID }}/product-versions" \
             --header "Authorization: Bearer ${{ secrets.KONNECT_TOKEN }}" \
             --header "Content-Type: application/json" \
             --header "Accept: application/json" \
@@ -299,7 +297,7 @@ jobs:
               "deprecated":false,
               "gateway_service": {
                   "runtime_group_id":"${{ env.KONNECT_RUNTIME_GROUP_ID}}",
-                  "id":"${{ steps.get-service-id.outputs.SERVICE_ID }}"
+                  "id":"${{ env.SERVICE_ID }}"
                 }
             }' | jq -r '.id')" >> "$GITHUB_OUTPUT"
         fi
@@ -310,7 +308,7 @@ jobs:
       id: upload-oas
       run: |
         curl -v \
-          --url "${{ secrets.KONNECT_ADDR }}/v2/api-products/${{ steps.create-service-hub-product.outputs.SERVICE_ID }}/product-versions/${{ steps.create-api-product-version.outputs.API_PRODUCT_VERSION_ID }}/specifications" \
+          --url "${{ secrets.KONNECT_ADDR }}/v2/api-products/${{ env.SERVICE_ID }}/product-versions/${{ steps.create-api-product-version.outputs.API_PRODUCT_VERSION_ID }}/specifications" \
           --header "Authorization: Bearer ${{ secrets.KONNECT_TOKEN }}" \
           --header "Content-Type: application/json" \
           --header "Accept: application/json" \
@@ -339,7 +337,7 @@ jobs:
     - name: Publish to Developer Portal
       run: |
         curl --request PATCH \
-          --url "${{ secrets.KONNECT_ADDR }}/v2/api-products/${{ steps.create-service-hub-product.outputs.SERVICE_ID }}" \
+          --url "${{ secrets.KONNECT_ADDR }}/v2/api-products/${{ env.API_PRODUCT_ID }}" \
           --header "Authorization: Bearer ${{ secrets.KONNECT_TOKEN }}" \
           --header 'Content-Type: application/json' \
           --header 'accept: application/json' \
