@@ -111,6 +111,12 @@ jobs:
           --konnect-token ${{ secrets.KONNECT_TOKEN }} \
           --konnect-runtime-group-name "${{ env.KONNECT_RUNTIME_GROUP_NAME }}"\
 
+#######################################
+#
+#   BUILD CONFIGURATION STAGE
+#
+#######################################
+
     # Use decK Merge to merge together our generated Kong Declarative Configuration File with the contents of the Plugin folder in our repository
 
     - name: Merge Kong Configuration with Plugins
@@ -131,7 +137,14 @@ jobs:
       with:
         name: ${{ env.SERVICE_TAGS }}-api-kong-config
         path: kong.yaml
-        
+
+
+#######################################
+#
+#   DEPLOY CONFIGURATION STAGE
+#
+#######################################
+
     # Compare the new desired state represented in the generated Kong Declarative Configuration with the current state of the platform
 
     - name: Diff declarative config
@@ -185,6 +198,12 @@ jobs:
           --header 'accept: application/json' \
           --header "Authorization: Bearer ${{ secrets.KONNECT_TOKEN }}" | jq -r '.data[0].id')" >> "$GITHUB_OUTPUT"
 
+#######################################
+#
+#   CREATE API PRODUCT STAGE
+#
+#######################################
+
     # Checks if an API Product Version already exists so that we don't create a duplicate each time this is run
 
     - name: Get API Product ID if it already exists
@@ -196,7 +215,7 @@ jobs:
           --header "Authorization: Bearer ${{ secrets.KONNECT_TOKEN }}" \
           --header "Accept: application/json" | jq -r '.data[0].id')" >> "$GITHUB_OUTPUT"
 
-    # Create a new API Product Version if the API Product Version ID from the previous script is null
+    # Create a new API Product if the API Product ID from the previous script is null
 
     - name: Create API Product
       id: create-api-product
@@ -237,6 +256,12 @@ jobs:
           -d @$entry
         done
 
+    #######################################
+    #
+    #   CREATE API PRODUCT VERSION STAGE
+    #
+    #######################################
+
     # Add the OAS to the JSON Payload required by the Konnect Product API Version API and output as a file
 
     - name: Prepare OpenAPI Specification 
@@ -245,7 +270,6 @@ jobs:
         yq -i '.servers[0].url = "${{ vars.KONG_GATEWAY }}"' ./api/oas.yaml
         base64 -w 0 ./api/oas.yaml > oas-encoded.yaml
         jq --null-input --arg content "$(<oas-encoded.yaml)" '{"name": "oas.yaml", "content": $content}' >> product_version_spec.json
-
 
     # Checks if an API Product Version already exists so that we don't create a duplicate each time this is run
 
@@ -263,7 +287,7 @@ jobs:
     - name: Create API Product Version 
       id: create-api-product-version
       run: |      
-        if [[ "${{ steps.create-api-product.outputs.KONNECT_API_PRODUCT_VERSION_ID}}" == "null" ]]; then
+        if [[ "${{ steps.get-api-product-version-id.outputs.KONNECT_API_PRODUCT_VERSION_ID}}" == "null" ]]; then
           echo "API_PRODUCT_VERSION_ID=$(curl -X POST \
             --url "https://${{ env.KONNECT_REGION }}.api.konghq.com/v2/api-products/${{ steps.create-api-product.outputs.API_PRODUCT_ID }}/product-versions" \
             --header "Authorization: Bearer ${{ secrets.KONNECT_TOKEN }}" \
@@ -292,12 +316,25 @@ jobs:
           --header "Accept: application/json" \
           --data @product_version_spec.json
 
+
+    #######################################
+    #
+    #   TESTING STAGE
+    #
+    #######################################
+
     # Run the tests defined in our Insomnia Test Suite
 
     - name: Run Tests
       id: run-tests
       run: |
         inso run test $(yq '.name' $(echo -n ./.insomnia/Workspace/*))
+
+    #######################################
+    #
+    #   DEPLOY TO PORTAL STAGE
+    #
+    #######################################
 
     - name: Publish to Developer Portal
       run: |
