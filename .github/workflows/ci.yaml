@@ -199,11 +199,12 @@ jobs:
     - name: Create API Product
       id: create-api-product
       run: |
+        echo API_PRODUCT_ID: ${{ steps.get-api-product-id.outputs.API_PRODUCT_ID }}
         if [[ "${{ steps.get-api-product-id.outputs.API_PRODUCT_ID }}" == "null" ]]; then
           echo "API_PRODUCT_ID=$(curl \
             --url https://${{ env.KONNECT_REGION }}.api.konghq.com/v2/api-products \
-            --header 'Authorization:Bearer ${{ secrets.KONNECT_TOKEN }}' \
-            --header 'Content-Type:application/json' \
+            --header "Authorization: Bearer ${{ secrets.KONNECT_TOKEN }}" \
+            --header 'Content-Type: application/json' \
             --data '{
               "name":"${{ env.API_PRODUCT_NAME }}",
               "description":"${{ env.API_PRODUCT_DESCRIPTION }}"
