@@ -55,13 +55,13 @@ jobs:
     - name: Set Variables
       run: |
         echo "KONNECT_PORTAL=$(echo 4abacaf1-47dc-4c07-83ff-a8801782277e)" >> $GITHUB_ENV
-        echo "KONNECT_RUNTIME_GROUP_NAME=$(yq .runtimeGroup ./config.yml)" >> $GITHUB_ENV
-        echo "KONNECT_REGION=$(yq .region ./config.yml)" >> $GITHUB_ENV
+        echo "KONNECT_RUNTIME_GROUP_NAME=$(yq .runtimeGroup ./config.yaml)" >> $GITHUB_ENV
+        echo "KONNECT_REGION=$(yq .region ./config.yaml)" >> $GITHUB_ENV
         echo "API_PRODUCT_NAME=$(yq .info.title ./api/oas.yaml)" >> $GITHUB_ENV
         echo "API_PRODUCT_DESCRIPTION=$(yq .info.description ./api/oas.yaml)" >> $GITHUB_ENV
         echo "API_PRODUCT_VERSION=$(yq .info.version ./api/oas.yaml)" >> $GITHUB_ENV
-        echo "API_PRODUCT_VERSION_STATUS=$(yq .versionStatus ./config.yml)" >> $GITHUB_ENV
-        echo "API_PRODUCT_PUBLISH=$(yq .publishToPortal ./config.yml)" >> $GITHUB_ENV
+        echo "API_PRODUCT_VERSION_STATUS=$(yq .versionStatus ./config.yaml)" >> $GITHUB_ENV
+        echo "API_PRODUCT_PUBLISH=$(yq .publishToPortal ./config.yaml)" >> $GITHUB_ENV
         echo "SERVICE_TAGS=$(yq '.info.title' ./api/oas.yaml)" >> $GITHUB_ENV
 
     # The Konnect Runtime Group Name and API Product Names might include characters that need to be URL encoded.
