@@ -68,8 +68,8 @@ jobs:
 
     - name: URL Encode Variables
       run: |
-        echo API_PRODUCT_NAME_ENCODED=$(echo ${{ env.API_PRODUCT_NAME }} | sed 's/ /%20/g')"  >> $GITHUB_ENV
-        echo KONNECT_RUNTIME_GROUP_NAME_ENCODED=$(echo $ {{ env.KONNECT_RUNTIME_GROUP_NAME }} | sed 's/ /%20/g')"  >> $GITHUB_ENV
+        echo "API_PRODUCT_NAME_ENCODED=$(echo ${{ env.API_PRODUCT_NAME }} | sed 's/ /%20/g')"  >> $GITHUB_ENV
+        echo "KONNECT_RUNTIME_GROUP_NAME_ENCODED=$(echo $ {{ env.KONNECT_RUNTIME_GROUP_NAME }} | sed 's/ /%20/g')"  >> $GITHUB_ENV
 
     # The API Product Version name will not be unique if just based on what we extract from the OAS - we need to add the Runtime Group Name to this
 
@@ -200,7 +200,8 @@ jobs:
       id: create-api-product
       run: |
         if [[ "${{ steps.get-api-product-id.outputs.API_PRODUCT_ID }}" == "null" ]]; then
-          echo "API_PRODUCT_ID=$(curl ${{ secrets.KONNECT_ADDR }}/konnect-api/api/service_packages  \
+          echo "API_PRODUCT_ID=$(curl \
+            --url https://${{ env.KONNECT_REGION }}.api.konghq.com/v2/api-products \
             --header 'Authorization:Bearer ${{ secrets.KONNECT_TOKEN }}' \
             --header 'Content-Type:application/json' \
             --data '{
