@@ -1,4 +1,5 @@
 runtimeGroup: hr-dev
 region: eu
+apiProductName: 'Employee Directory'
 versionStatus: published
 publishToPortal: true

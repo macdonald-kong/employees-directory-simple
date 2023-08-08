@@ -57,7 +57,7 @@ jobs:
         echo "KONNECT_PORTAL=$(echo 4abacaf1-47dc-4c07-83ff-a8801782277e)" >> $GITHUB_ENV
         echo "KONNECT_RUNTIME_GROUP_NAME=$(yq .runtimeGroup ./config.yaml)" >> $GITHUB_ENV
         echo "KONNECT_REGION=$(yq .region ./config.yaml)" >> $GITHUB_ENV
-        echo "API_PRODUCT_NAME=$(yq .info.title ./api/oas.yaml)" >> $GITHUB_ENV
+        echo "API_PRODUCT_NAME=$(yq .apiProductName ./config.yaml)" >> $GITHUB_ENV
         echo "API_PRODUCT_DESCRIPTION=$(yq .info.description ./api/oas.yaml)" >> $GITHUB_ENV
         echo "API_PRODUCT_VERSION=$(yq .info.version ./api/oas.yaml)" >> $GITHUB_ENV
         echo "API_PRODUCT_VERSION_STATUS=$(yq .versionStatus ./config.yaml)" >> $GITHUB_ENV
@@ -286,7 +286,7 @@ jobs:
       id: create-api-product-version
       run: |      
         if [[ "${{ env.KONNECT_API_PRODUCT_VERSION_ID}}" == "null" ]]; then
-          echo "API_PRODUCT_VERSION_ID=$(curl -X POST \
+          echo "KONNECT_API_PRODUCT_VERSION_ID=$(curl -X POST \
             --url "https://${{ env.KONNECT_REGION }}.api.konghq.com/v2/api-products/${{ env.API_PRODUCT_ID }}/product-versions" \
             --header "Authorization: Bearer ${{ secrets.KONNECT_TOKEN }}" \
             --header "Content-Type: application/json" \
@@ -313,7 +313,6 @@ jobs:
           --header "Content-Type: application/json" \
           --header "Accept: application/json" \
           --data @product_version_spec.json
-
 
     #######################################
     #
