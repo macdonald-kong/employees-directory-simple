@@ -84,7 +84,7 @@ jobs:
         echo "KONNECT_RUNTIME_GROUP_ID=$(curl \
           --url "https://${{ env.KONNECT_REGION }}.api.konghq.com/v2/runtime-groups?filter%5Bname%5D=${{ env.KONNECT_RUNTIME_GROUP_NAME_ENCODED }}" \
           --header "accept: */*"  \
-          --header "Authorization: Bearer $(KONNECT_TOKEN)" | jq -r '.data[0].id')" >> $GITHUB_ENV
+          --header "Authorization: Bearer ${{ secrets.KONNECT_TOKEN }}" | jq -r '.data[0].id')" >> $GITHUB_ENV
 
     # Check that the OpenAPI Specification file that we exported from the Insomnia Workspace is valid and well formed
 
@@ -107,7 +107,7 @@ jobs:
     - name: Ping Kong Konnect
       run: |
         deck ping \
-          --konnect-addr ${{ secrets.KONNECT_ADDR }} \
+          --konnect-addr "https://${{ env.KONNECT_REGION }}.api.konghq.com" \
           --konnect-token ${{ secrets.KONNECT_TOKEN }} \
           --konnect-runtime-group-name "${{ env.KONNECT_RUNTIME_GROUP_NAME }}"\
 
@@ -219,7 +219,7 @@ jobs:
         mkdir docs
         for entry in "./api/portal_assets"/*
         do
-          echo "{\"slug\":\"$(echo "$entry" | sed 's#.*/\([^/]*\)\.md#\1#')\",\"status\":\"published\",\"title\":\"$(echo "$entry" | sed 's#.*/\([^/]*\)\.md#\1#')\",\"raw_content\":\"$(base64 -i ./api/portal_assets/${entry##*/})\",\"filename\":\"$(echo "$entry" | sed 's#.*/\([^/]*\)\.md#\1#')\"}" >> ./docs/$(echo "$entry" | sed 's#.*/\([^/]*\)\.md#\1#').json
+          echo "{\"slug\":\"$(echo "$entry" | sed 's#.*/\([^/]*\)\.md#\1#')\",\"status\":\"published\",\"title\":\"$(echo "$entry" | sed 's#.*/\([^/]*\)\.md#\1#')\",\"content\":\"$(base64 -i ./api/portal-assets/${entry##*/})\"}" >> ./docs/$(echo "$entry" | sed 's#.*/\([^/]*\)\.md#\1#').json
         done
 
     # For each of the Json payloads that we have generated in the previous step, send them to the API Products Documents API to upload
