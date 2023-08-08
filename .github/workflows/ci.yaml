@@ -68,14 +68,23 @@ jobs:
 
     - name: URL Encode Variables
       run: |
-        echo API_PRODUCT_NAME_ENCODED=$(echo $(API_PRODUCT_NAME) | sed 's/ /%20/g')"  >> $GITHUB_ENV
-        echo KONNECT_RUNTIME_GROUP_NAME_ENCODED=$(echo $(KONNECT_RUNTIME_GROUP_NAME) | sed 's/ /%20/g')"  >> $GITHUB_ENV
+        echo API_PRODUCT_NAME_ENCODED=$(echo ${{ env.API_PRODUCT_NAME }} | sed 's/ /%20/g')"  >> $GITHUB_ENV
+        echo KONNECT_RUNTIME_GROUP_NAME_ENCODED=$(echo $ {{ env.KONNECT_RUNTIME_GROUP_NAME }} | sed 's/ /%20/g')"  >> $GITHUB_ENV
 
     # The API Product Version name will not be unique if just based on what we extract from the OAS - we need to add the Runtime Group Name to this
 
     - name: Concat API Product Version Variable
       run: |
-        echo "KONNECT_API_PRODUCT_VERSION=$(echo "$API_PRODUCT_VERSION"-"$KONNECT_RUNTIME_GROUP_NAME_ENCODED")"  >> $GITHUB_ENV
+        echo "KONNECT_API_PRODUCT_VERSION=$(echo "${{ env.API_PRODUCT_VERSION }}"-"${{ env.KONNECT_RUNTIME_GROUP_NAME_ENCODED }}")"  >> $GITHUB_ENV
+
+# Use the Konnect Runtime Group Name to search for the ID using the Konnect Runtime Group API
+
+    - name: Get Konnect Runtime Group ID
+      run: |
+        echo "KONNECT_RUNTIME_GROUP_ID=$(curl \
+          --url "https://$ {{ env.KONNECT_REGION }}.api.konghq.com/v2/runtime-groups?filter%5Bname%5D=${{ env.KONNECT_RUNTIME_GROUP_NAME_ENCODED }}" \
+          --header "accept: */*"  \
+          --header "Authorization: Bearer $(KONNECT_TOKEN)" | jq -r '.data[0].id')"
 
     # Check that the OpenAPI Specification file that we exported from the Insomnia Workspace is valid and well formed
 
@@ -90,7 +99,7 @@ jobs:
         deck file openapi2kong \
           --spec ./api/oas.yaml \
           --format yaml \
-          --select-tag ${{ vars.KONG_SERVICE_NAME }} \
+          --select-tag ${{ env.SERVICE_TAGS }} \
           --output-file ./kong-generated.yaml
 
     # Use decK Ping to check that we can connect to the Kong Konnect Control Plane
@@ -118,7 +127,7 @@ jobs:
     - name: 'Upload Kong Config Artifact'
       uses: actions/upload-artifact@v3
       with:
-        name: ${{ vars.KONG_SERVICE_NAME }}-api-kong-config
+        name: ${{ env.SERVICE_TAGS }}-api-kong-config
         path: kong.yaml
         
     # Compare the new desired state represented in the generated Kong Declarative Configuration with the current state of the platform
@@ -170,7 +179,7 @@ jobs:
       id: get-service-id
       run: |
         echo "SERVICE_ID=$(curl \
-          --url "${{ secrets.KONNECT_ADDR }}/v2/runtime-groups/1e66084e-0b3c-42e8-9dc8-75e49fe8d4fa/core-entities/services?tags=${{ vars.KONG_SERVICE_NAME }}" \
+          --url "${{ secrets.KONNECT_ADDR }}/v2/runtime-groups/1e66084e-0b3c-42e8-9dc8-75e49fe8d4fa/core-entities/services?tags=${{ env.SERVICE_TAGS }}" \
           --header 'accept: application/json' \
           --header "Authorization: Bearer ${{ secrets.KONNECT_TOKEN }}" | jq -r '.data[0].id')" >> "$GITHUB_OUTPUT"
 
