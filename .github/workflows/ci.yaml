@@ -50,10 +50,38 @@ jobs:
     - name: Export OpenAPI Spec
       run: inso export spec $(yq '.name' $(echo -n ./.insomnia/Workspace/*)) > ./api/oas.yaml
 
+    # Read the configuration file and the OpenAPI Spec and populate the variables that we will be using
+
+    - name: Set Variables
+      run: |
+        echo "KONNECT_PORTAL=$(echo 4abacaf1-47dc-4c07-83ff-a8801782277e)" >> $GITHUB_ENV
+        echo "KONNECT_RUNTIME_GROUP_NAME=$(yq .runtimeGroup ./config.yml)" >> $GITHUB_ENV
+        echo "KONNECT_REGION=$(yq .region ./config.yml)" >> $GITHUB_ENV
+        echo "API_PRODUCT_NAME=$(yq .info.title ./api/oas.yaml)" >> $GITHUB_ENV
+        echo "API_PRODUCT_DESCRIPTION=$(yq .info.description ./api/oas.yaml)" >> $GITHUB_ENV
+        echo "API_PRODUCT_VERSION=$(yq .info.version ./api/oas.yaml)" >> $GITHUB_ENV
+        echo "API_PRODUCT_VERSION_STATUS=$(yq .versionStatus ./config.yml)" >> $GITHUB_ENV
+        echo "API_PRODUCT_PUBLISH=$(yq .publishToPortal ./config.yml)" >> $GITHUB_ENV
+        echo "SERVICE_TAGS=$(yq '.info.title' ./api/oas.yaml)" >> $GITHUB_ENV
+
+    # The Konnect Runtime Group Name and API Product Names might include characters that need to be URL encoded.
+
+    - name: URL Encode Variables
+      run: |
+        echo "##vso[task.setvariable variable=API_PRODUCT_NAME_ENCODED;]$(echo $(API_PRODUCT_NAME) | sed 's/ /%20/g')"
+        echo "##vso[task.setvariable variable=KONNECT_RUNTIME_GROUP_NAME_ENCODED;]$(echo $(KONNECT_RUNTIME_GROUP_NAME) | sed 's/ /%20/g')"
+
+    # The API Product Version name will not be unique if just based on what we extract from the OAS - we need to add the Runtime Group Name to this
+
+    - name: Concat API Product Version Variable
+      run: |
+        echo "KONNECT_API_PRODUCT_VERSION=$(echo "$API_PRODUCT_VERSION"-"$KONNECT_RUNTIME_GROUP_NAME_ENCODED")"  >> $GITHUB_ENV
+
     # Check that the OpenAPI Specification file that we exported from the Insomnia Workspace is valid and well formed
 
     - name: Lint OpenAPI Spec
-      run: inso lint spec ./api/oas.yaml
+      run: |
+        inso lint spec ./api/oas.yaml
 
     # Use decKs openapi2kong command to generate Kong Declarative Configuration from the OpenAPI Specification exported from the Insomnia Workspace.
 
@@ -64,6 +92,15 @@ jobs:
           --format yaml \
           --select-tag ${{ vars.KONG_SERVICE_NAME }} \
           --output-file ./kong-generated.yaml
+
+    # Use decK Ping to check that we can connect to the Kong Konnect Control Plane
+
+    - name: Ping Kong Konnect
+      run: |
+        deck ping \
+          --konnect-addr ${{ secrets.KONNECT_ADDR }} \
+          --konnect-token ${{ secrets.KONNECT_TOKEN }} \
+          --konnect-runtime-group-name "${{ env.KONNECT_RUNTIME_GROUP_NAME }}"\
 
     # Use decK Merge to merge together our generated Kong Declarative Configuration File with the contents of the Plugin folder in our repository
 
@@ -92,8 +129,8 @@ jobs:
           --state kong.yaml \
           --konnect-addr ${{ secrets.KONNECT_ADDR }} \
           --konnect-token ${{ secrets.KONNECT_TOKEN }} \
-          --konnect-runtime-group-name ${{ secrets.KONNECT_RUNTIME_GROUP_NAME }} \
-          --select-tag ${{ vars.KONG_SERVICE_NAME }}
+          --konnect-runtime-group-name ${{ env.KONNECT_RUNTIME_GROUP_NAME }} \
+          --select-tag ${{ env.SERVICE_TAGS }}
 
     # Use decK dump to take a backup of the entire Runtime Group Configuration
       
@@ -102,7 +139,7 @@ jobs:
         deck dump \
           --konnect-addr ${{ secrets.KONNECT_ADDR }} \
           --konnect-token ${{ secrets.KONNECT_TOKEN }} \
-          --konnect-runtime-group-name ${{ secrets.KONNECT_RUNTIME_GROUP_NAME }} \
+          --konnect-runtime-group-name ${{ env.KONNECT_RUNTIME_GROUP_NAME }} \
           --output-file kong-backup.yaml
 
     # Publishes the Backup Kong Declarative Configuration as an artifact
@@ -122,8 +159,8 @@ jobs:
           --state kong.yaml \
           --konnect-addr ${{ secrets.KONNECT_ADDR }} \
           --konnect-token ${{ secrets.KONNECT_TOKEN }} \
-          --konnect-runtime-group-name ${{ secrets.KONNECT_RUNTIME_GROUP_NAME }} \
-          --select-tag ${{ vars.KONG_SERVICE_NAME }}
+          --konnect-runtime-group-name ${{ env.KONNECT_RUNTIME_GROUP_NAME }} \
+          --select-tag ${{ env.SERVICE_TAGS }}
         sleep 10
         echo "SERVICE_VERSION_ID=$(curl ${{ secrets.KONNECT_ADDR }}/konnect-api/api/service_packages/${{ steps.create-service-hub-product.outputs.SERVICE_ID }} -H "Authorization:Bearer ${{ secrets.KONNECT_TOKEN }}" | jq -r '.versions | .[] | .id')" >> "$GITHUB_OUTPUT"
 
@@ -139,19 +176,31 @@ jobs:
 
     # Checks if an API Product Version already exists so that we don't create a duplicate each time this is run
 
-    # TODO
+    - name: Get API Product ID if it already exists
+      id: get-api-product-id
+      run: |
+          echo "API_PRODUCT_ID=$(curl \
+          --request GET \
+          --url "https://${{ secrets.KONNECT_ADDR }}/v2/api-products?filter%5Bname%5D=${{ API_PRODUCT_NAME_ENCODED }}" \
+          --header "Authorization: Bearer ${{ secrets.KONNECT_TOKEN }}" \
+          --header "Accept: application/json" | jq -r '.data[0].id')" >> "$GITHUB_OUTPUT"
 
     # Create a new API Product Version if the API Product Version ID from the previous script is null
 
     - name: Create API Product
       id: create-api-product
       run: |
-        echo "SERVICE_ID=$(curl ${{ secrets.KONNECT_ADDR }}/konnect-api/api/service_packages  \
-          --header 'Authorization:Bearer ${{ secrets.KONNECT_TOKEN }}' \
-          --header 'Content-Type:application/json' \
-          --data "{\"name\":\"${{ vars.KONG_SERVICE_NAME }}\",\"display_name\":\"${{ vars.KONG_SERVICE_DISPLAY_NAME }}\",\"description\":\"${{ vars.KONG_SERVICE_DESCRIPTION }}\"}" | jq -r .id )" >> "$GITHUB_OUTPUT"
+        if [[ "${{ steps.get-api-product-id.outputs.API_PRODUCT_ID }}" == "null" ]]; then
+          echo "API_PRODUCT_ID=$(curl ${{ secrets.KONNECT_ADDR }}/konnect-api/api/service_packages  \
+            --header 'Authorization:Bearer ${{ secrets.KONNECT_TOKEN }}' \
+            --header 'Content-Type:application/json' \
+            --data '{
+              "name":"${{ env.API_PRODUCT_NAME }}",
+              "description":"${{ env.API_PRODUCT_DESCRIPTION }}"
+            }' | jq -r .id)" >> "$GITHUB_OUTPUT"
+        fi
 
-    # Add the OAS to the JSON Payload required by the Konnect Product API Version API and output as a file
+    # Base64 encode each markdown file in the portal_assets folder and inject each into the required json payload to send to the Konnect API Products API
 
     - name: Prepare Static Documentation
       id: prepare-static-docs
@@ -159,20 +208,20 @@ jobs:
         mkdir docs
         for entry in "./api/portal_assets"/*
         do
-        echo "{\"slug\":\"$(echo "$entry" | sed 's#.*/\([^/]*\)\.md#\1#')\",\"status\":\"published\",\"title\":\"$(echo "$entry" | sed 's#.*/\([^/]*\)\.md#\1#')\",\"raw_content\":\"$(base64 -i ./api/portal_assets/${entry##*/})\",\"filename\":\"$(echo "$entry" | sed 's#.*/\([^/]*\)\.md#\1#')\"}" >> ./docs/$(echo "$entry" | sed 's#.*/\([^/]*\)\.md#\1#').json
+          echo "{\"slug\":\"$(echo "$entry" | sed 's#.*/\([^/]*\)\.md#\1#')\",\"status\":\"published\",\"title\":\"$(echo "$entry" | sed 's#.*/\([^/]*\)\.md#\1#')\",\"raw_content\":\"$(base64 -i ./api/portal_assets/${entry##*/})\",\"filename\":\"$(echo "$entry" | sed 's#.*/\([^/]*\)\.md#\1#')\"}" >> ./docs/$(echo "$entry" | sed 's#.*/\([^/]*\)\.md#\1#').json
         done
 
-    # Upload the prepared OAS JSON Payload to the API Product Version
+    # For each of the Json payloads that we have generated in the previous step, send them to the API Products Documents API to upload
 
     - name: Upload Static Documentation
       id: upload-static-docs
       run: |
         for entry in "./docs"/*
         do
-        curl -X POST ${{ secrets.KONNECT_ADDR }}/v0/services/${{ steps.create-service-hub-product.outputs.SERVICE_ID }}/documents \
-          --header "Authorization: ${{ secrets.KONNECT_TOKEN }}" \
-          --header 'Content-Type: application/json' \
-          --data @$entry
+          curl -X POST https://${{ env.KONNECT_REGION }}.api.konghq.com/v2/api-products/${{ steps.create-api-product.outputs.API_PRODUCT_ID }}/documents \
+          --header "Authorization: Bearer ${{ secrets.KONNECT_TOKEN }}" \
+          --header "Content-Type: application/json" \
+          -d @$entry
         done
 
     # Add the OAS to the JSON Payload required by the Konnect Product API Version API and output as a file
@@ -184,25 +233,39 @@ jobs:
         base64 -w 0 ./api/oas.yaml > oas-encoded.yaml
         jq --null-input --arg content "$(<oas-encoded.yaml)" '{"name": "oas.yaml", "content": $content}' >> product_version_spec.json
 
+
+# Checks if an API Product Version already exists so that we don't create a duplicate each time this is run
+
+    - name: Get API Product Version ID if it already exists 
+      id: get-api-product-version-id
+      run: |
+        echo "KONNECT_API_PRODUCT_VERSION_ID=$(curl \
+          --request GET \
+          --url "https://${{ env.KONNECT_REGION }}.api.konghq.com/v2/api-products/${{ steps.create-api-product.outputs.API_PRODUCT_ID }}/product-versions?filter%5Bname%5D=${{ env.KONNECT_API_PRODUCT_VERSION }}" \
+          --header "Authorization: Bearer ${{ secrets.KONNECT_TOKEN }}" \
+          --header "Accept: application/json" | jq -r '.data[0].id')" >> "$GITHUB_OUTPUT"
+
     # Create a new API Product Version if the API Product Version ID from the previous script is null
 
     - name: Create API Product Version 
       id: create-api-product-version
       run: |      
-        echo "API_PRODUCT_VERSION_ID=$(curl -X POST \
-          --url "${{ secrets.KONNECT_ADDR }}/v2/api-products/${{ steps.create-service-hub-product.outputs.SERVICE_ID }}/product-versions" \
-          --header "Authorization: Bearer ${{ secrets.KONNECT_TOKEN }}" \
-          --header "Content-Type: application/json" \
-          --header "Accept: application/json" \
-          --data '{
-            "name":"v1",
-            "publish_status":"published",
-            "deprecated":false,
-            "gateway_service": {
-                "runtime_group_id":"1e66084e-0b3c-42e8-9dc8-75e49fe8d4fa",
-                "id":"${{ steps.get-service-id.outputs.SERVICE_ID }}"
-              }
-          }' | jq -r '.id')" >> "$GITHUB_OUTPUT"
+        if [[ "${{ steps.create-api-product.outputs.KONNECT_API_PRODUCT_VERSION_ID}}" == "null" ]]; then
+          echo "API_PRODUCT_VERSION_ID=$(curl -X POST \
+            --url "${{ secrets.KONNECT_ADDR }}/v2/api-products/${{ steps.create-service-hub-product.outputs.SERVICE_ID }}/product-versions" \
+            --header "Authorization: Bearer ${{ secrets.KONNECT_TOKEN }}" \
+            --header "Content-Type: application/json" \
+            --header "Accept: application/json" \
+            --data '{
+              "name":"v1",
+              "publish_status":"published",
+              "deprecated":false,
+              "gateway_service": {
+                  "runtime_group_id":"1e66084e-0b3c-42e8-9dc8-75e49fe8d4fa",
+                  "id":"${{ steps.get-service-id.outputs.SERVICE_ID }}"
+                }
+            }' | jq -r '.id')" >> "$GITHUB_OUTPUT"
+        fi
 
     # Upload the prepared OAS JSON Payload to the API Product Version
 
@@ -225,6 +288,9 @@ jobs:
 
     - name: Publish to Developer Portal
       run: |
-        echo "Publish service id ${{ steps.create-service-hub-product.outputs.SERVICE_ID }} to portal"
-        curl -X PUT ${{ secrets.KONNECT_ADDR }}/konnect-api/api/service_packages/${{ steps.create-service-hub-product.outputs.SERVICE_ID }}/portals/${{ secrets.PORTAL_ID }} 
-          -H "Authorization:Bearer ${{ secrets.KONNECT_TOKEN }}"
+        curl --request PATCH \
+          --url "${{ secrets.KONNECT_ADDR }}/v2/api-products/${{ steps.create-service-hub-product.outputs.SERVICE_ID }}" \
+          --header "Authorization: Bearer ${{ secrets.KONNECT_TOKEN }}" \
+          --header 'Content-Type: application/json' \
+          --header 'accept: application/json' \
+          --data '{"portal_ids":["${{ env.KONNECT_PORTAL }}"]}'
