@@ -77,14 +77,14 @@ jobs:
       run: |
         echo "KONNECT_API_PRODUCT_VERSION=$(echo ${{ env.API_PRODUCT_VERSION }}-${{ env.KONNECT_RUNTIME_GROUP_NAME_ENCODED }})"  >> $GITHUB_ENV
 
-# Use the Konnect Runtime Group Name to search for the ID using the Konnect Runtime Group API
+    # Use the Konnect Runtime Group Name to search for the ID using the Konnect Runtime Group API
 
     - name: Get Konnect Runtime Group ID
       run: |
         echo "KONNECT_RUNTIME_GROUP_ID=$(curl \
-          --url "https://$ {{ env.KONNECT_REGION }}.api.konghq.com/v2/runtime-groups?filter%5Bname%5D=${{ env.KONNECT_RUNTIME_GROUP_NAME_ENCODED }}" \
+          --url "https://${{ env.KONNECT_REGION }}.api.konghq.com/v2/runtime-groups?filter%5Bname%5D=${{ env.KONNECT_RUNTIME_GROUP_NAME_ENCODED }}" \
           --header "accept: */*"  \
-          --header "Authorization: Bearer $(KONNECT_TOKEN)" | jq -r '.data[0].id')"
+          --header "Authorization: Bearer $(KONNECT_TOKEN)" | jq -r '.data[0].id')" >> $GITHUB_ENV
 
     # Check that the OpenAPI Specification file that we exported from the Insomnia Workspace is valid and well formed
 
@@ -272,7 +272,7 @@ jobs:
               "publish_status":"published",
               "deprecated":false,
               "gateway_service": {
-                  "runtime_group_id":"1e66084e-0b3c-42e8-9dc8-75e49fe8d4fa",
+                  "runtime_group_id":"{{ $KONNECT_RUNTIME_GROUP_ID}}",
                   "id":"${{ steps.get-service-id.outputs.SERVICE_ID }}"
                 }
             }' | jq -r '.id')" >> "$GITHUB_OUTPUT"
