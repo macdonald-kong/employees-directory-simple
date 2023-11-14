@@ -5,7 +5,7 @@ modified: 1697712375884
 created: 1687378772238
 name: Base Environment
 data:
-  base_url: http://34.142.47.214:8000
+  base_url: http://34.39.19.139:8000
   employeeId: "9"
   newEmployeeId: "1234"
 dataPropertyOrder:
