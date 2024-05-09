@@ -1,7 +1,7 @@
 _id: spc_f44fdab376b14d59b4542e664ffdd9dc
 type: ApiSpec
 parentId: wrk_226543b369544fb784989a2c9febfb33
-modified: 1709651864699
+modified: 1715257540604
 created: 1687378772133
 fileName: employees-directory-simple.git
 contents: >+
@@ -10,7 +10,7 @@ contents: >+
 
   info:
     title: employees-directory-v1-dev
-    description: "This is a sample Employee Directory Server based on the OpenAPI 3.0 specification."
+    description: "This is a sample Employee Directory Server API based on the OpenAPI 3.0 specification."
     termsOfService: https://konghq.com/terms
     contact:
       email: david.macdonald@konghq.com
