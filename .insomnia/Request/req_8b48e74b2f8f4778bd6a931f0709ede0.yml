@@ -17,6 +17,7 @@ body:
       "email": "john@email.com"
     }
 preRequestScript: ""
+afterResponseScript: ""
 parameters: []
 headers: []
 authentication: {}
