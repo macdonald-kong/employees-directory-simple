@@ -9,7 +9,6 @@ description: ""
 method: GET
 body: {}
 preRequestScript: ""
-afterResponseScript: ""
 parameters: []
 headers: []
 authentication: {}
