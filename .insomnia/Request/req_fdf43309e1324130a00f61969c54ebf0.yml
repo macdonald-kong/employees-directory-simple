@@ -8,13 +8,14 @@ name: Get all employees
 description: ""
 method: GET
 body: {}
-preRequestScript: ""
 parameters: []
 headers: []
 authentication: {}
+preRequestScript: ""
 metaSortKey: -1687378884493.5
 isPrivate: false
 pathParameters: []
+afterResponseScript: null
 settingStoreCookies: true
 settingSendCookies: true
 settingDisableRenderRequestBody: false

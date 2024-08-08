@@ -8,13 +8,14 @@ name: Find employee by ID (9)
 description: ""
 method: GET
 body: {}
-preRequestScript: ""
 parameters: []
 headers: []
 authentication: {}
+preRequestScript: ""
 metaSortKey: -1687378884494
 isPrivate: false
 pathParameters: []
+afterResponseScript: null
 settingStoreCookies: true
 settingSendCookies: true
 settingDisableRenderRequestBody: false
