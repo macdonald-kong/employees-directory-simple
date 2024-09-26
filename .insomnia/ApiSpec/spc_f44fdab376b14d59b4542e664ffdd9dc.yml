@@ -1,7 +1,7 @@
 _id: spc_f44fdab376b14d59b4542e664ffdd9dc
 type: ApiSpec
 parentId: wrk_226543b369544fb784989a2c9febfb33
-modified: 1727358808442
+modified: 1727364771438
 created: 1687378772133
 fileName: employees-directory-simple.git
 contents: >+
@@ -30,7 +30,7 @@ contents: >+
 
   tags:
 
-  - name: employee
+  - name: employees
     description: Everything about our Employees
     externalDocs:
       description: Find out more on our Developer Portal
