@@ -1,11 +1,11 @@
 _id: env_526dc4eb2c0e132344e84b2ad2cca50d7f476a41
 type: Environment
 parentId: wrk_226543b369544fb784989a2c9febfb33
-modified: 1716991407939
+modified: 1727350250900
 created: 1687378772238
 name: Base Environment
 data:
-  base_url: http://34.142.103.8:8000
+  base_url: http://localhost:8000/
   employeeId: "9"
   newEmployeeId: "1234"
 dataPropertyOrder:
