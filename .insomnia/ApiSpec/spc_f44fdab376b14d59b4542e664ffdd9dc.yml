@@ -1,7 +1,7 @@
 _id: spc_f44fdab376b14d59b4542e664ffdd9dc
 type: ApiSpec
 parentId: wrk_226543b369544fb784989a2c9febfb33
-modified: 1732190045878
+modified: 1732202433964
 created: 1687378772133
 fileName: employees-directory-simple.git
 contents: >+
@@ -20,7 +20,7 @@ contents: >+
     version: 1.0.1
 
   externalDocs:
-    description: Find out more on our Great Developer Portal
+    description: Find out more on our Amazing Developer Portal
     url: https://kong243cd87c.us.portal.konghq.com/
 
   servers:
