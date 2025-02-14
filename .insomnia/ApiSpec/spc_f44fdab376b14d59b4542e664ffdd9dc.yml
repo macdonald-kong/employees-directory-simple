@@ -1,7 +1,7 @@
 _id: spc_f44fdab376b14d59b4542e664ffdd9dc
 type: ApiSpec
 parentId: wrk_226543b369544fb784989a2c9febfb33
-modified: 1736853345523
+modified: 1739525371586
 created: 1687378772133
 fileName: employees-directory-simple.git
 contents: >+
@@ -25,7 +25,7 @@ contents: >+
 
   servers:
 
-  - url: http://employee-directory.hr-dev.svc.cluster.local:8080
+  - url: http://localhost:8080
     description: Dev Environment
 
   tags:
